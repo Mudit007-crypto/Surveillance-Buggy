@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Camera Control</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/js/all.min.js" defer></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background-color: #121212;
+      color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+
+    header {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    header h1 {
+      font-weight: 500;
+      font-size: 1.8rem;
+      color: #ff5252;
+    }
+
+    #stream {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 1rem;
+      box-shadow: 0 0 20px rgba(255, 82, 82, 0.5);
+      margin-bottom: 1rem;
+    }
+
+    .button-container {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      background-color: #ff5252;
+      border: none;
+      color: white;
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #ff7b7b;
+    }
+
+    select, input[type=range], input[type=checkbox] {
+      background-color: #1e1e1e;
+      color: white;
+      border: 1px solid #ff5252;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: 300;
+    }
+
+    .controls {
+      max-width: 600px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📷 ESP32 Camera Control Panel</h1>
+  </header>
+
+  <img id="stream" src="" alt="Camera stream">
+
+  <div class="button-container">
+    <button onclick="captureStill()">📸 Capture</button>
+    <button onclick="toggleStream()">▶️ Start Stream</button>
+    <a id="downloadLink" class="button" style="display:none">💾 Save</a>
+  </div>
+
+  <div class="controls">
+    <label for="resolution">Resolution</label>
+    <select id="resolution" onchange="setResolution()">
+      <option value="10">VGA (640x480)</option>
+      <option value="12">XGA (1024x768)</option>
+      <option value="13">HD (1280x720)</option>
+    </select>
+
+    <label for="brightness">Brightness</label>
+    <input type="range" id="brightness" min="-2" max="2" value="0" onchange="updateSetting('brightness')">
+
+    <label for="contrast">Contrast</label>
+    <input type="range" id="contrast" min="-2" max="2" value="0" onchange="updateSetting('contrast')">
+
+    <label for="hmirror">
+      <input type="checkbox" id="hmirror" onchange="updateSetting('hmirror')">
+      Horizontal Mirror
+    </label>
+
+    <label for="vflip">
+      <input type="checkbox" id="vflip" onchange="updateSetting('vflip')">
+      Vertical Flip
+    </label>
+  </div>
+
+  <script>
+    const baseHost = location.origin;
+    const stream = document.getElementById('stream');
+    const downloadLink = document.getElementById('downloadLink');
+    let isStreaming = false;
+
+    function captureStill() {
+      stream.src = `${baseHost}/capture?_cb=${Date.now()}`;
+      downloadLink.href = stream.src;
+      downloadLink.download = `capture_${Date.now()}.jpg`;
+      downloadLink.style.display = 'inline-block';
+    }
+
+    function toggleStream() {
+      if (!isStreaming) {
+        stream.src = `${baseHost}:81/stream`;
+        isStreaming = true;
+      } else {
+        stream.src = '';
+        isStreaming = false;
+      }
+    }
+
+    function updateSetting(settingId) {
+      const el = document.getElementById(settingId);
+      const value = el.type === 'checkbox' ? (el.checked ? 1 : 0) : el.value;
+      fetch(`${baseHost}/control?var=${settingId}&val=${value}`);
+    }
+
+    function setResolution() {
+      const value = document.getElementById('resolution').value;
+      fetch(`${baseHost}/control?var=framesize&val=${value}`);
+    }
+  </script>
+</body>
+</html>
